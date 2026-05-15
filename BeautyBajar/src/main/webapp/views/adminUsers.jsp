@@ -1,78 +1,80 @@
-<%-- 
-    Admin Dashboard Page
-    Author: Asmi Nepali
-    Date: May 2026
---%>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="java.util.List" %>
-<%@ page import="com.mycompany.beautybajar.model.user" %>
+<%@ page import="java.util.List, com.mycompany.beautybajar.model.User" %>
 <%
-    if (session.getAttribute("role") == null || !session.getAttribute("role").equals("admin")) {
-        response.sendRedirect(request.getContextPath() + "/login");
-        return;
-    }
-    List<user> users = (List<user>) request.getAttribute("users");
+    List<User> users = (List<User>) request.getAttribute("users");
 %>
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Users - Beauty Bajar</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; }
-        .navbar { background: #E8846A; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .navbar a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { padding: 30px; }
-        h1 { color: #333; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-        th { background: #E8846A; color: white; padding: 12px 14px; text-align: left; }
-        td { padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 14px; }
-        tr:hover td { background: #FDF0EB; }
-        .btn { padding: 7px 14px; border-radius: 5px; text-decoration: none; font-size: 13px; border: none; cursor: pointer; display: inline-block; }
-        .btn-del { background: #dc3545; color: white; }
-        .badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; }
-        .badge-admin { background: #fde8f0; color: #E8846A; }
-        .badge-user  { background: #e8f4fd; color: #1a7abf; }
-        .msg { color: green; margin-bottom: 12px; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; background:#f5f5f5; }
+        .navbar { background:#F5C4B0; padding:15px 30px; display:flex; justify-content:space-between; flex-wrap:wrap; }
+        .navbar a { color:white; text-decoration:none; margin-left:20px; }
+        .wrapper { display:flex; flex-wrap:wrap; }
+        .sidebar { width:250px; background:#2C1810; color:white; }
+        .sidebar a { display:block; padding:12px 20px; color:#ccc; text-decoration:none; }
+        .sidebar a:hover, .sidebar a.active { background:#3d2416; color:white; border-left:3px solid #F5C4B0; }
+        .main { flex:1; padding:30px; overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; background:white; display:block; overflow-x:auto; }
+        th { background:#F5C4B0; color:white; padding:12px; text-align:left; }
+        td { padding:10px 12px; border-bottom:1px solid #eee; }
+        .btn-del { background:#dc3545; color:white; padding:5px 10px; border-radius:4px; text-decoration:none; font-size:12px; }
+        .badge { padding:3px 10px; border-radius:12px; font-size:12px; }
+        .badge-admin { background:#fde8f0; color:#F5C4B0; }
+        .badge-user { background:#e8f4fd; color:#1a7abf; }
+        @media (max-width:768px) {
+            .sidebar { width:100%; text-align:center; }
+            .sidebar a { display:inline-block; margin:5px; }
+            .main { padding:15px; }
+        }
     </style>
 </head>
 <body>
-<div class="navbar">
-    <strong>Beauty Bajar Admin</strong>
-    <div>
-        <a href="<%= request.getContextPath() %>/admindashboard">Dashboard</a>
-        <a href="<%= request.getContextPath() %>/adminproduct">Products</a>
-        <a href="<%= request.getContextPath() %>/adminorder">Orders</a>
-        <a href="<%= request.getContextPath() %>/logout">Logout</a>
+    <div class="navbar">
+        <strong>Beauty Bajar Admin</strong>
+        <div><a href="${pageContext.request.contextPath}/home">View Store</a> <a href="${pageContext.request.contextPath}/logout">Logout</a></div>
     </div>
-</div>
-<div class="container">
-    <h1>Users</h1>
-    <% String msg = (String) request.getAttribute("message");
-       if (msg != null) { %><p class="msg"><%= msg %></p><% } %>
-    <table>
-        <tr><th>ID</th><th>Full Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
-        <% if (users != null && !users.isEmpty()) {
-               for (user u : users) { %>
-        <tr>
-            <td><%= u.getUserId() %></td>
-            <td><%= u.getFullName() %></td>
-            <td><%= u.getEmail() %></td>
-            <td><span class="badge <%= u.getRole().equals("admin") ? "badge-admin" : "badge-user" %>"><%= u.getRole() %></span></td>
-            <td>
-                <% if (!u.getRole().equals("admin")) { %>
-                <a class="btn btn-del" href="<%= request.getContextPath() %>/adminuser?action=delete&id=<%= u.getUserId() %>"
-                   onclick="return confirm('Delete this user?')">Delete</a>
-                <% } else { %>
-                <span style="color:#999; font-size:13px;">protected</span>
+    <div class="wrapper">
+        <div class="sidebar">
+            <a href="${pageContext.request.contextPath}/admin/dashboard">Dashboard</a>
+            <a href="${pageContext.request.contextPath}/admin/products">Products</a>
+            <a href="${pageContext.request.contextPath}/admin/users" class="active">Users</a>
+            <a href="${pageContext.request.contextPath}/admin/orders">Orders</a>
+        </div>
+        <div class="main">
+            <h2>Users</h2>
+            <% if (request.getAttribute("message") != null) { %>
+                <p style="color:green"><%= request.getAttribute("message") %></p>
+            <% } %>
+            <% if (request.getAttribute("error") != null) { %>
+                <p style="color:red"><%= request.getAttribute("error") %></p>
+            <% } %>
+            <table>
+                <tr><th>ID</th><th>Full Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+                <% if (users != null && !users.isEmpty()) {
+                    for (User u : users) { %>
+                    <tr>
+                        <td><%= u.getUserId() %></td>
+                        <td><%= u.getFullName() %></td>
+                        <td><%= u.getEmail() %></td>
+                        <td><span class="badge <%= u.getRole().equals("admin") ? "badge-admin" : "badge-user" %>"><%= u.getRole() %></span></td>
+                        <td>
+                            <% if (!"admin".equals(u.getRole())) { %>
+                                <a class="btn-del" href="${pageContext.request.contextPath}/admin/users?action=delete&id=<%= u.getUserId() %>" onclick="return confirm('Delete this user?')">Delete</a>
+                            <% } else { %>
+                                <span style="color:#999;">protected</span>
+                            <% } %>
+                        </td>
+                    </tr>
+                <% } } else { %>
+                    <tr><td colspan="5">No users found.</td></tr>
                 <% } %>
-            </td>
-        </tr>
-        <% }} else { %>
-        <tr><td colspan="5" style="text-align:center; color:#999; padding:20px;">No users found.</td></tr>
-        <% } %>
-    </table>
-</div>
+            </table>
+        </div>
+    </div>
 </body>
 </html>

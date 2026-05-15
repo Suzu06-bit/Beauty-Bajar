@@ -1,42 +1,43 @@
 package com.mycompany.beautybajar.controller;
 
-import com.mycompany.beautybajar.dao.productDAO;
-import com.mycompany.beautybajar.dao.userDAO;
-import java.io.IOException;
+import com.mycompany.beautybajar.dao.OrderDAO;
+import com.mycompany.beautybajar.dao.ProductDAO;
+import com.mycompany.beautybajar.dao.UserDAO;
+
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.*;
+import java.io.IOException;
 
-/**
- * Admin Dashboard Servlet
- * Author: Asmi Nepali
- * Date: May 2026
- */
-
+@WebServlet("/admin/dashboard")
 public class AdminDashboardServlet extends HttpServlet {
+
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
+
+        // Check admin session
+        HttpSession session = req.getSession(false);
+        if (session == null || !"admin".equals(session.getAttribute("role"))) {
+            res.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
+
         try {
-            productDAO pDao = new productDAO();
-            userDAO uDao = new userDAO();
-            request.setAttribute("totalProducts", pDao.countAllProducts());
-            request.setAttribute("totalUsers", uDao.getAllUsers().size());
-            request.setAttribute("totalOrders", 0);
+            ProductDAO productDAO = new ProductDAO();
+            UserDAO userDAO = new UserDAO();
+            OrderDAO orderDAO = new OrderDAO();
+
+            req.setAttribute("totalProducts", productDAO.countProducts());
+            req.setAttribute("totalUsers", userDAO.countUsers());
+            req.setAttribute("totalOrders", orderDAO.countOrders());
+            req.setAttribute("totalRevenue", orderDAO.getTotalRevenue());
+            req.setAttribute("recentOrders", orderDAO.getAllOrders());
+
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("totalProducts", 0);
-            request.setAttribute("totalUsers", 0);
-            request.setAttribute("totalOrders", 0);
         }
-        request.getRequestDispatcher("/views/adminDashboard.jsp")
-               .forward(request, response);
-    }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        doGet(request, response);
+        req.getRequestDispatcher("/views/adminDashboard.jsp").forward(req, res);
     }
 }

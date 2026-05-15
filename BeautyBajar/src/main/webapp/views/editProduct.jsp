@@ -1,18 +1,9 @@
-<%-- 
-    Admin Dashboard Page
-    Author: Asmi Nepali
-    Date: May 2026
---%>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.mycompany.beautybajar.model.product" %>
 <%
-    if (session.getAttribute("role") == null || !session.getAttribute("role").equals("admin")) {
-        response.sendRedirect(request.getContextPath() + "/login");
-        return;
-    }
-    product p = (product) request.getAttribute("product");
+    product p = (product) request.getAttribute("editProduct");
     if (p == null) {
-        response.sendRedirect(request.getContextPath() + "/adminproduct");
+        response.sendRedirect(request.getContextPath() + "/admin/products");
         return;
     }
 %>
@@ -20,54 +11,151 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Product - Beauty Bajar</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; }
-        .navbar { background: #d63384; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .navbar a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { padding: 30px; max-width: 620px; }
-        h1 { color: #333; margin-bottom: 20px; }
-        .form-card { background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; color: #444; }
-        input, textarea { width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-bottom: 16px; }
-        .btn-submit { background: #d63384; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-size: 15px; cursor: pointer; }
-        .btn-cancel { background: #6c757d; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-size: 15px; text-decoration: none; margin-left: 10px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .navbar {
+            background: #F5C4B0;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #444;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .btn-submit {
+            background: #F5C4B0;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-submit:hover {
+            background: #e07a5f;
+        }
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 15px;
+            margin-left: 10px;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+        .error {
+            color: #dc3545;
+            font-size: 13px;
+            margin-bottom: 15px;
+            background: #f8d7da;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                margin: 15px;
+                padding: 20px;
+            }
+            .navbar {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            .navbar div {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="navbar">
-    <strong>Beauty Bajar Admin</strong>
-    <div>
-        <a href="<%= request.getContextPath() %>/admindashboard">Dashboard</a>
-        <a href="<%= request.getContextPath() %>/adminproduct">Products</a>
-        <a href="<%= request.getContextPath() %>/logout">Logout</a>
+    <div class="navbar">
+        <strong>Beauty Bajar Admin</strong>
+        <div>
+            <a href="${pageContext.request.contextPath}/home">View Store</a>
+            <a href="${pageContext.request.contextPath}/logout">Logout</a>
+        </div>
     </div>
-</div>
-<div class="container">
-    <h1>Edit Product</h1>
-    <div class="form-card">
-        <form action="<%= request.getContextPath() %>/adminproduct" method="post">
+    <div class="container">
+        <h2>Edit Product</h2>
+        <% if (request.getAttribute("error") != null) { %>
+            <div class="error"><%= request.getAttribute("error") %></div>
+        <% } %>
+        <form action="${pageContext.request.contextPath}/admin/products" method="post">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="productId" value="<%= p.getProductId() %>">
+
             <label>Product Name *</label>
             <input type="text" name="name" value="<%= p.getName() %>" required>
+
             <label>Description</label>
             <textarea name="description" rows="3"><%= p.getDescription() != null ? p.getDescription() : "" %></textarea>
+
             <label>Price (Rs.) *</label>
-            <input type="number" name="price" step="0.01" value="<%= p.getPrice() %>" required>
+            <input type="number" name="price" step="0.01" min="0" value="<%= p.getPrice() %>" required>
+
             <label>Stock Quantity *</label>
-            <input type="number" name="stockQuantity" value="<%= p.getStockQuantity() %>" required>
+            <input type="number" name="stock" min="0" value="<%= p.getStock() %>" required>
+
             <label>Category ID</label>
             <input type="number" name="categoryId" value="<%= p.getCategoryId() %>">
+
             <label>Image URL</label>
-            <input type="text" name="imageUrl" value="<%= p.getImageUrl() != null ? p.getImageUrl() : "" %>">
-            <div>
+            <input type="text" name="image" value="<%= p.getImage() != null ? p.getImage() : "" %>">
+
+            <div style="margin-top: 10px;">
                 <button type="submit" class="btn-submit">Save Changes</button>
-                <a class="btn-cancel" href="<%= request.getContextPath() %>/adminproduct">Cancel</a>
+                <a class="btn-cancel" href="${pageContext.request.contextPath}/admin/products">Cancel</a>
             </div>
         </form>
     </div>
-</div>
 </body>
 </html>

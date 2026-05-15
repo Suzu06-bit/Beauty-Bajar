@@ -1,13 +1,15 @@
 package com.mycompany.beautybajar.controller;
 
-import com.mycompany.beautybajar.dao.productDAO;
-import com.mycompany.beautybajar.model.product;
+import com.mycompany.beautybajar.dao.ProductDAO;
+import com.mycompany.beautybajar.model.Product;
 import java.io.IOException;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+@WebServlet("/admin/products")
 public class AdminProductServlet extends HttpServlet {
 
     @Override
@@ -17,26 +19,23 @@ public class AdminProductServlet extends HttpServlet {
         String action = request.getParameter("action");
         if (action == null) action = "list";
 
-        productDAO pDao = new productDAO();
+        ProductDAO pDao = new ProductDAO();
 
         try {
             switch (action) {
-                // Show add product form
                 case "new":
                     request.getRequestDispatcher("/views/addProduct.jsp")
                            .forward(request, response);
                     break;
 
-                // Load product from    
                 case "edit":
                     int editId = Integer.parseInt(request.getParameter("id"));
-                    product p = pDao.getById(editId);
+                    Product p = pDao.getProductById(editId); // corrected
                     request.setAttribute("product", p);
                     request.getRequestDispatcher("/views/editProduct.jsp")
                            .forward(request, response);
                     break;
-                    
-                // Delete product 
+
                 case "delete":
                     int deleteId = Integer.parseInt(request.getParameter("id"));
                     pDao.deleteProduct(deleteId);
@@ -44,7 +43,7 @@ public class AdminProductServlet extends HttpServlet {
                     break;
 
                 default:
-                    request.setAttribute("products", pDao.getAllProducts());
+                    request.setAttribute("products", pDao.getProducts(null, null)); // corrected
                     request.getRequestDispatcher("/views/adminProducts.jsp")
                            .forward(request, response);
                     break;
@@ -60,7 +59,7 @@ public class AdminProductServlet extends HttpServlet {
             throws ServletException, IOException {
 
         String action = request.getParameter("action");
-        productDAO pDao = new productDAO();
+        ProductDAO pDao = new ProductDAO();
 
         try {
             if ("add".equals(action)) {
@@ -68,7 +67,6 @@ public class AdminProductServlet extends HttpServlet {
                 String priceStr = request.getParameter("price");
                 String stockStr = request.getParameter("stockQuantity");
 
-                // Validation
                 if (name == null || name.trim().isEmpty()) {
                     request.setAttribute("error", "Product name cannot be empty.");
                     request.getRequestDispatcher("/views/addProduct.jsp").forward(request, response);
@@ -85,17 +83,17 @@ public class AdminProductServlet extends HttpServlet {
                     return;
                 }
 
-                product p = new product();
+                Product p = new Product();
                 p.setName(name.trim());
                 p.setDescription(request.getParameter("description"));
                 p.setPrice(Double.parseDouble(priceStr));
                 p.setStock(Integer.parseInt(stockStr));
                 p.setCategoryId(Integer.parseInt(request.getParameter("categoryId")));
                 p.setImage(request.getParameter("imageUrl"));
-                pDao.addProduct(p);
+                pDao.insertProduct(p); // corrected
 
             } else if ("update".equals(action)) {
-                product p = new product();
+                Product p = new Product();
                 p.setProductId(Integer.parseInt(request.getParameter("productId")));
                 p.setName(request.getParameter("name"));
                 p.setDescription(request.getParameter("description"));
