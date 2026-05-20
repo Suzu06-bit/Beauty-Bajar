@@ -1,23 +1,31 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.beautybajar.util;
-
+ 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
-
+ 
+/**
+ * DBConnection — provides a single static method to obtain a MySQL connection.
+ * Update DB_URL, DB_USER, DB_PASS to match your XAMPP / MySQL setup.
+ */
 public class DBConnection {
-
-    private static final String DB_NAME = "Beauty Bajar";
-    private static final String USERNAME = "root";
-    private static final String PASSWORD = "";
-    private static final String URL = "jdbc:mysql://localhost:3306/" + DB_NAME;
-
-    public static Connection getConnection() throws SQLException, ClassNotFoundException {
-        Class.forName("com.mysql.cj.jdbc.Driver");
-        return DriverManager.getConnection(URL, USERNAME, PASSWORD);
+ 
+    private static final String DB_URL  = "jdbc:mysql://localhost:3306/beauty_bajar?useSSL=false&serverTimezone=UTC";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "";   // default XAMPP has no password
+ 
+    static {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("MySQL JDBC Driver not found", e);
+        }
+    }
+ 
+    /**
+     * Returns a new Connection. Caller is responsible for closing it.
+     */
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
     }
 }

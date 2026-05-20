@@ -1,87 +1,97 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package com.mycompany.beautybajar.controller;
-
-import java.io.IOException;
-import java.io.PrintWriter;
+ 
+import com.mycompany.beautybajar.dao.ProductDAO;
+import com.mycompany.beautybajar.model.Product;
+import com.mycompany.beautybajar.util.SessionUtil;
+ 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-/**
- *
- * @author Suzu♡
- */
-@WebServlet(name = "CartServlet", urlPatterns = {"/cart"})
+import jakarta.servlet.http.*;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+ 
+@WebServlet("/cart")
 public class CartServlet extends HttpServlet {
-
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+ 
+    private final ProductDAO productDAO = new ProductDAO();
+ 
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet CartServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet CartServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+        if (!SessionUtil.isLoggedIn(req.getSession(false))) {
+            res.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
+        req.setAttribute("cartItems", getCart(req.getSession()));
+        req.getRequestDispatcher("/views/cart.jsp").forward(req, res);
+    }
+ 
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void doPost(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
+        if (!SessionUtil.isLoggedIn(req.getSession(false))) {
+            res.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
+ 
+        String action = req.getParameter("action");
+        HttpSession session = req.getSession();
+ 
+        if ("add".equals(action)) {
+            int productId;
+            try {
+                productId = Integer.parseInt(req.getParameter("productId"));
+            } catch (NumberFormatException e) {
+                res.sendRedirect(req.getContextPath() + "/products");
+                return;
+            }
+            int qty = 1;
+            try { qty = Integer.parseInt(req.getParameter("quantity")); } catch (Exception ignored) {}
+            Product p = productDAO.getProductById(productId);
+            if (p != null) {
+                Map<Product, Integer> cart = getCart(session);
+                Product existing = cart.keySet().stream()
+                        .filter(pr -> pr.getProductId() == productId)
+                        .findFirst().orElse(null);
+                if (existing != null) {
+                    cart.put(existing, cart.get(existing) + qty);
+                } else {
+                    cart.put(p, qty);
+                }
+                session.setAttribute("cart", cart);
+                updateCartCount(session, cart);
+            }
+            res.sendRedirect(req.getContextPath() + "/cart");
+ 
+        } else if ("remove".equals(action)) {
+            int productId = Integer.parseInt(req.getParameter("productId"));
+            Map<Product, Integer> cart = getCart(session);
+            cart.entrySet().removeIf(e -> e.getKey().getProductId() == productId);
+            session.setAttribute("cart", cart);
+            updateCartCount(session, cart);
+            res.sendRedirect(req.getContextPath() + "/cart");
+ 
+        } else if ("clear".equals(action)) {
+            session.removeAttribute("cart");
+            session.setAttribute("cartCount", 0);
+            res.sendRedirect(req.getContextPath() + "/cart");
+ 
+        } else {
+            res.sendRedirect(req.getContextPath() + "/cart");
         }
     }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
+ 
+    @SuppressWarnings("unchecked")
+    private Map<Product, Integer> getCart(HttpSession session) {
+        Map<Product, Integer> cart = (Map<Product, Integer>) session.getAttribute("cart");
+        if (cart == null) cart = new LinkedHashMap<>();
+        return cart;
     }
-
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
+ 
+    private void updateCartCount(HttpSession session, Map<Product, Integer> cart) {
+        int total = cart.values().stream().mapToInt(Integer::intValue).sum();
+        session.setAttribute("cartCount", total);
     }
-
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
 }

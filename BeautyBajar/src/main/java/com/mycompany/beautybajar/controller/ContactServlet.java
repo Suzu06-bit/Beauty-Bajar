@@ -1,77 +1,55 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package com.mycompany.beautybajar.controller;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import com.mycompany.beautybajar.util.ValidationUtil;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.*;
+import java.io.IOException;
 
 /**
- *
- * @author Suzu♡
+ * ContactServlet — shows the contact form (GET) and processes submission (POST).
  */
-@WebServlet(name = "ContactServlet", urlPatterns = {"/contact"})
+@WebServlet("/contact")
 public class ContactServlet extends HttpServlet {
 
-    // ── GET: Show contact form ──
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
-        request.getRequestDispatcher("/views/contact.jsp")
-                .forward(request, response);
+        req.getRequestDispatcher("/views/contact.jsp").forward(req, res);
     }
 
-    // ── POST: Handle contact form submission ──
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
+        String name    = req.getParameter("name");
+        String email   = req.getParameter("email");
+        String subject = req.getParameter("subject");
+        String message = req.getParameter("message");
 
-        // Read form fields
-        String name = request.getParameter("name");
-        String email = request.getParameter("email");
-        String subject = request.getParameter("subject");
-        String message = request.getParameter("message");
+        // Re-populate fields
+        req.setAttribute("name",    name);
+        req.setAttribute("email",   email);
+        req.setAttribute("subject", subject);
+        req.setAttribute("message", message);
 
-        // Server-side validation
-        String error = null;
-
-        if (name == null || name.trim().isEmpty()) {
-            error = "Name is required.";
-        } else if (email == null || email.trim().isEmpty()) {
-            error = "Email is required.";
-        } else if (!email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
-            error = "Please enter a valid email address.";
-        } else if (subject == null || subject.trim().isEmpty()) {
-            error = "Subject is required.";
-        } else if (message == null || message.trim().isEmpty()) {
-            error = "Message is required.";
-        } else if (message.trim().length() < 10) {
-            error = "Message must be at least 10 characters.";
+        // Validation
+        if (ValidationUtil.isEmpty(name) || ValidationUtil.isEmpty(email)
+                || ValidationUtil.isEmpty(subject) || ValidationUtil.isEmpty(message)) {
+            req.setAttribute("error", "All required fields must be filled in.");
+            req.getRequestDispatcher("/views/contact.jsp").forward(req, res); return;
+        }
+        if (!ValidationUtil.isValidEmail(email)) {
+            req.setAttribute("error", "Please enter a valid email address.");
+            req.getRequestDispatcher("/views/contact.jsp").forward(req, res); return;
+        }
+        if (message.trim().length() < 10) {
+            req.setAttribute("error", "Message must be at least 10 characters.");
+            req.getRequestDispatcher("/views/contact.jsp").forward(req, res); return;
         }
 
-        if (error != null) {
-            // Validation failed — send back to form with error + keep values
-            request.setAttribute("error", error);
-            request.setAttribute("name", name);
-            request.setAttribute("email", email);
-            request.setAttribute("subject", subject);
-            request.setAttribute("message", message);
-            request.getRequestDispatcher("/views/contact.jsp")
-                    .forward(request, response);
-        } else {
-            // Success — in real app you would save to DB or send email
-            // For now just show success message
-            request.setAttribute("success",
-                    "Thank you, " + name.trim() + "! Your message has been sent. "
-                    + "We will get back to you within 24 hours.");
-            request.getRequestDispatcher("/views/contact.jsp")
-                    .forward(request, response);
-        }
+        // In a real system, you would send an email or save to DB here.
+        req.setAttribute("success", "Thank you! Your message has been received. We will reply within 24 hours.");
+        req.getRequestDispatcher("/views/contact.jsp").forward(req, res);
     }
 }

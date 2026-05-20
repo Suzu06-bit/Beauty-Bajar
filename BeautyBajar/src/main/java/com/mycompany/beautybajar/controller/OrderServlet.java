@@ -1,87 +1,70 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package com.mycompany.beautybajar.controller;
-
-import java.io.IOException;
-import java.io.PrintWriter;
+ 
+import com.mycompany.beautybajar.dao.OrderDAO;
+import com.mycompany.beautybajar.model.Product;
+import com.mycompany.beautybajar.util.SessionUtil;
+ 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-/**
- *
- * @author Suzu♡
- */
-@WebServlet(name = "OrderServlet", urlPatterns = {"/order"})
+import jakarta.servlet.http.*;
+import java.io.IOException;
+import java.util.Map;
+ 
+@WebServlet("/order")
 public class OrderServlet extends HttpServlet {
-
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+ 
+    private final OrderDAO orderDAO = new OrderDAO();
+ 
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet OrderServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet OrderServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+        if (!SessionUtil.isLoggedIn(req.getSession(false))) {
+            res.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
+        int userId = SessionUtil.getUserId(req.getSession(false));
+        try {
+            req.setAttribute("orders", orderDAO.getOrdersByUser(userId));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        req.getRequestDispatcher("/views/myOrders.jsp").forward(req, res);
+    }
+ 
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void doPost(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
+        if (!SessionUtil.isLoggedIn(req.getSession(false))) {
+            res.sendRedirect(req.getContextPath() + "/login");
+            return;
+        }
+ 
+        HttpSession session = req.getSession();
+        Map<Product, Integer> cart = (Map<Product, Integer>) session.getAttribute("cart");
+ 
+        if (cart == null || cart.isEmpty()) {
+            res.sendRedirect(req.getContextPath() + "/cart");
+            return;
+        }
+ 
+        double total = cart.entrySet().stream()
+                .mapToDouble(e -> e.getKey().getPrice() * e.getValue()).sum();
+ 
+        int userId = SessionUtil.getUserId(session);
+        int orderId = -1;
+        try {
+            orderId = orderDAO.insertOrder(userId, total);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+ 
+        if (orderId > 0) {
+            session.removeAttribute("cart");
+            session.setAttribute("cartCount", 0);
+            res.sendRedirect(req.getContextPath() + "/order?success=placed");
+        } else {
+            res.sendRedirect(req.getContextPath() + "/cart?error=failed");
         }
     }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
 }

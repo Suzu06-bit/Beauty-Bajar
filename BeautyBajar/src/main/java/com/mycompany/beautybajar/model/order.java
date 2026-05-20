@@ -1,18 +1,26 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.beautybajar.model;
 
-import java.sql.Timestamp;
+import java.sql.Date;
 
-public class order {
+public class Order {
 
     private int orderId;
     private int userId;
+    private String username;   // joined from users table
     private double totalPrice;
     private String status;
-    private Timestamp orderDate;
+    private Date orderDate;
+
+    public Order() {
+    }
+
+    public Order(int orderId, int userId, double totalPrice, String status, Date orderDate) {
+        this.orderId = orderId;
+        this.userId = userId;
+        this.totalPrice = totalPrice;
+        this.status = status;
+        this.orderDate = orderDate;
+    }
 
     // Getters
     public int getOrderId() {
@@ -23,6 +31,10 @@ public class order {
         return userId;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
     public double getTotalPrice() {
         return totalPrice;
     }
@@ -31,7 +43,7 @@ public class order {
         return status;
     }
 
-    public Timestamp getOrderDate() {
+    public Date getOrderDate() {
         return orderDate;
     }
 
@@ -44,15 +56,19 @@ public class order {
         this.userId = userId;
     }
 
-    public void setTotalPrice(double totalPrice) {
-        this.totalPrice = totalPrice;
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setTotalPrice(double price) {
+        this.totalPrice = price;
     }
 
     public void setStatus(String status) {
         this.status = status;
     }
 
-    public void setOrderDate(Timestamp orderDate) {
+    public void setOrderDate(Date orderDate) {
         this.orderDate = orderDate;
     }
 }

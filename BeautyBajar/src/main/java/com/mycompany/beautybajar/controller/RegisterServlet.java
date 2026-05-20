@@ -1,87 +1,101 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package com.mycompany.beautybajar.controller;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import com.mycompany.beautybajar.model.User;
+import com.mycompany.beautybajar.dao.UserDAO;
+import com.mycompany.beautybajar.util.PasswordUtil;
+import com.mycompany.beautybajar.util.ValidationUtil;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.*;
+import java.io.IOException;
 
-/**
- *
- * @author Suzu♡
- */
-@WebServlet(name = "RegisterServlet", urlPatterns = {"/register"})
+@WebServlet("/register")
 public class RegisterServlet extends HttpServlet {
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+    private final UserDAO userDAO = new UserDAO();
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet RegisterServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet RegisterServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+        req.getRequestDispatcher("/views/register.jsp").forward(req, res);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
+
+        // 1. Read form fields
+        String fullName = req.getParameter("fullname");
+        String username = req.getParameter("username");
+        String email = req.getParameter("email");
+        String phone = req.getParameter("phone");
+        String address = req.getParameter("address");
+        String password = req.getParameter("password");
+        String confirmPassword = req.getParameter("confirmPassword");
+
+        // 2. Re-populate form fields on error (so user doesn't retype)
+        req.setAttribute("fullname", fullName);
+        req.setAttribute("username", username);
+        req.setAttribute("email", email);
+        req.setAttribute("phone", phone);
+        req.setAttribute("address", address);
+
+        // 3. Run all validation from ValidationUtil in one call
+        String validationError = ValidationUtil.validateRegistration(
+                fullName, username, email, phone, password, confirmPassword);
+
+        if (validationError != null) {
+            req.setAttribute("error", validationError);
+            req.getRequestDispatcher("/views/register.jsp").forward(req, res);
+            return;
+        }
+
+        // 4. Check uniqueness against database
+        try {
+            if (userDAO.getUserByUsername(username) != null) {
+                req.setAttribute("error", "Username already taken. Please choose another.");
+                req.getRequestDispatcher("/views/register.jsp").forward(req, res);
+                return;
+            }
+            if (userDAO.getUserByEmail(email) != null) {
+                req.setAttribute("error", "An account with this email already exists.");
+                req.getRequestDispatcher("/views/register.jsp").forward(req, res);
+                return;
+            }
+            if (userDAO.getUserByPhone(phone) != null) {
+                req.setAttribute("error", "An account with this phone number already exists.");
+                req.getRequestDispatcher("/views/register.jsp").forward(req, res);
+                return;
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            req.setAttribute("error", "Registration failed. Please try again.");
+            req.getRequestDispatcher("/views/register.jsp").forward(req, res);
+            return;
+        }
+
+        // 5. Build User object and save to database
+        User user = new User();
+        user.setFullName(fullName.trim());
+        user.setUsername(username.trim());
+        user.setEmail(email.trim());
+        user.setPhone(phone.trim());
+        user.setAddress(address != null ? address.trim() : "");
+        user.setPassword(PasswordUtil.hashPassword(password));
+        user.setRole("user");
+
+        try {
+            if (userDAO.insertUser(user)) {
+                res.sendRedirect(req.getContextPath() + "/login?registered=true");
+            } else {
+                req.setAttribute("error", "Registration failed. Please try again.");
+                req.getRequestDispatcher("/views/register.jsp").forward(req, res);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            req.setAttribute("error", "Registration failed. Please try again.");
+            req.getRequestDispatcher("/views/register.jsp").forward(req, res);
         }
     }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
 }

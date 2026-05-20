@@ -1,87 +1,91 @@
- /*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
 package com.mycompany.beautybajar.controller;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import com.mycompany.beautybajar.dao.ProductDAO;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.*;
+import java.io.IOException;
 
 /**
+ * ProductServlet — Controller servlet that handles all product-related HTTP GET requests.
+ * Mapped to two URL patterns:
+ * <ul>
+ *   <li>{@code /products} — displays the full product listing page with optional
+ *       search and category filtering</li>
+ *   <li>{@code /product} — displays the detail page for a single product by its ID</li>
+ * </ul>
+ * Uses {@link ProductDAO} to fetch product data from the database and sets
+ * the results as request attributes before forwarding to the appropriate JSP view.
  *
- * @author Suzu♡
  */
-@WebServlet(name = "ProductServlet", urlPatterns = {"/product"})
+@WebServlet(urlPatterns = {"/products", "/product"})
 public class ProductServlet extends HttpServlet {
-
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
+/**
+     * The Data Access Object used to perform all product-related database queries.
+     * Initialised once when the servlet is loaded and reused for all requests.
      */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+    private final ProductDAO productDAO = new ProductDAO();
+/**
+     * Handles all HTTP GET requests for both {@code /products} and {@code /product}.
+     * Routes the request to the correct handler based on the servlet path:
+     *
+     * <p><b>If path is {@code /product}:</b><br>
+     * Reads the {@code id} query parameter and fetches the matching product from the database.
+     * Sets the product as a request attribute named {@code "product"} and forwards to
+     * {@code /views/productDetail.jsp}.
+     * If {@code id} is missing, redirects to {@code /products}.
+     * If {@code id} is not a valid integer, sets an error attribute and still forwards
+     * to the detail page so the JSP can display the error message.</p>
+     *
+     * <p><b>If path is {@code /products}:</b><br>
+     * Reads optional query parameters {@code q} (search keyword) and {@code cat} (category ID).
+     * Fetches matching products from the database and sets them as a request attribute
+     * named {@code "products"}, then forwards to {@code /views/products.jsp}.</p>
+     *
+     * @param req the {@link HttpServletRequest} containing optional query parameters:
+     *            <ul>
+     *              <li>{@code id} — the product ID for the detail view (used with /product)</li>
+     *              <li>{@code q} — search keyword to filter products by name (used with /products)</li>
+     *              <li>{@code cat} — category ID to filter products by category (used with /products)</li>
+     *            </ul>
+     * @param res the {@link HttpServletResponse} used to forward to the JSP view
+     *            or redirect to {@code /products} if the ID parameter is missing
+     * @throws ServletException if the request dispatcher encounters an error during forwarding
+     * @throws IOException      if an I/O error occurs during forwarding or redirection
+     */
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet ProductServlet</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet ProductServlet at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+        String path = req.getServletPath();
+
+        if ("/product".equals(path)) {
+            // Single product detail
+            String idStr = req.getParameter("id");
+            if (idStr == null) {
+                res.sendRedirect(req.getContextPath() + "/products");
+                return;
+            }
+            try {
+                int id = Integer.parseInt(idStr);
+                req.setAttribute("product", productDAO.getProductById(id));
+            } catch (NumberFormatException e) {
+                req.setAttribute("error", "Invalid product ID.");
+            } catch (Exception ex) {
+                System.getLogger(ProductServlet.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            }
+            req.getRequestDispatcher("/views/productDetail.jsp").forward(req, res);
+
+        } else {
+            // Product listing
+            String search = req.getParameter("q");
+            String catId = req.getParameter("cat");
+            try {
+                req.setAttribute("products", productDAO.getProducts(search, catId));
+            } catch (Exception ex) {
+                System.getLogger(ProductServlet.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            }
+            req.getRequestDispatcher("/views/products.jsp").forward(req, res);
         }
     }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        processRequest(request, response);
-    }
-
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
 }
